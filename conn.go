@@ -321,6 +321,11 @@ func (c *Conn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
+// RawConn returns the raw net.Conn
+func (c *Conn) RawConn() net.Conn {
+	return c.conn
+}
+
 // Write methods
 
 func (c *Conn) write(frameType int, deadline time.Time, bufs ...[]byte) error {

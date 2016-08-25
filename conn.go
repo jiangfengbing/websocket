@@ -88,6 +88,8 @@ var ErrCloseSent = errors.New("websocket: close sent")
 // read limit set for the connection.
 var ErrReadLimit = errors.New("websocket: read limit exceeded")
 
+var pongBuf = []byte{0x8a, 0x00}
+
 // netError satisfies the net Error interface.
 type netError struct {
 	msg       string
@@ -271,7 +273,7 @@ type Conn struct {
 	newDecompressionReader func(io.Reader) io.Reader
 }
 
-func newConn(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int) *Conn {
+func NewConn(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int) *Conn {
 	mu := make(chan bool, 1)
 	mu <- true
 
@@ -352,6 +354,18 @@ func (c *Conn) write(frameType int, deadline time.Time, bufs ...[]byte) error {
 		}
 	}
 	return nil
+}
+
+func (c *Conn) WriteServerPong(deadline time.Time) error {
+	if c.closeSent {
+		return ErrCloseSent
+	}
+	c.conn.SetWriteDeadline(deadline)
+	n, err := c.conn.Write(pongBuf)
+	if n != 0 && n != 2 {
+		c.conn.Close()
+	}
+	return hideTempErr(err)
 }
 
 // WriteControl writes a control message with the given deadline. The allowed
